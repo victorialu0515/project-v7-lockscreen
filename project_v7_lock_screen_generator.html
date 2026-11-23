@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project V7 — Lock Screen Generator</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Kalam:wght@700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #111317;
+      color: #F3F4F6;
+      margin: 0;
+    }
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #181B20; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #DB4A2B; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Bar -->
+  <header class="border-b border-white/10 bg-[#16191E] px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-[#DB4A2B] flex items-center justify-center font-bold text-white text-sm">V7</div>
+      <div>
+        <h1 class="text-sm font-semibold text-white leading-tight">Project V7 — Lock Screen Generator</h1>
+        <p class="text-xs text-gray-400">Customize your grade, deadline &amp; 6 climbing milestones once, then export</p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 cursor-pointer transition">
+        <input id="toggleWidgets" type="checkbox" class="w-3.5 h-3.5 rounded accent-[#DB4A2B] cursor-pointer" />
+        <span>Make Space for iOS Widgets</span>
+      </label>
+
+      <div class="relative">
+        <select id="iphoneModelSelect" class="appearance-none pl-3 pr-8 py-1.5 rounded-lg text-xs font-medium bg-[#0D0F12] text-white border border-white/15 cursor-pointer focus:outline-none focus:border-[#DB4A2B]">
+          <option value="1179x2556">iPhone 16 Pro / 15 Pro (1179×2556)</option>
+          <option value="1290x2796">iPhone 16 Pro Max / 15 Pro Max (1290×2796)</option>
+          <option value="1170x2532">iPhone 16 / 15 / 14 (1170×2532)</option>
+          <option value="1080x2340">iPhone 13 Mini / 12 Mini (1080×2340)</option>
+          <option value="750x1334">iPhone SE (750×1334)</option>
+        </select>
+        <svg class="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+        </svg>
+      </div>
+
+      <button id="resetBtn" type="button" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 transition">
+        Reset
+      </button>
+      <button id="exportPngBtn" type="button" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#DB4A2B] hover:bg-[#c63f22] text-white shadow-sm transition">
+        Download iPhone PNG
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-0">
+
+    <!-- Left: Live Canvas Preview -->
+    <section class="lg:col-span-7 flex flex-col items-center justify-center p-4 sm:p-6 bg-[#0D0F12] relative overflow-auto">
+      <div class="flex flex-wrap items-center justify-center gap-2 mb-3 text-xs text-gray-400">
+        <span id="exportDimBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          1179 × 2556 px Export
+        </span>
+      </div>
+
+      <!-- Phone Bezel Frame -->
+      <div class="relative rounded-[44px] p-[10px] bg-[#232730] shadow-2xl border border-white/15" style="width: min(370px, 92vw);">
+        <div id="dynamicIsland" class="absolute top-[18px] left-1/2 -translate-x-1/2 w-[92px] h-[24px] bg-black rounded-full z-20 pointer-events-none"></div>
+        <div class="rounded-[34px] overflow-hidden bg-[#E4E2DD] relative aspect-[393/852]">
+          <svg id="lockScreenSvg" viewBox="0 0 393 852" xmlns="http://www.w3.org/2000/svg" class="w-full h-full block select-none pointer-events-none"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Component Inspector -->
+    <aside class="lg:col-span-5 border-t lg:border-t-0 lg:border-l border-white/10 bg-[#16191E] flex flex-col max-h-none lg:max-h-[calc(100vh-57px)]">
+      <div class="flex border-b border-white/10 px-3 pt-2 gap-1 bg-[#13161A]">
+        <button data-tab="goal" class="tab-btn px-3 py-2 text-xs font-semibold rounded-t-lg border-b-2 border-[#DB4A2B] text-white">
+          Goal &amp; Deadline
+        </button>
+        <button data-tab="holds" class="tab-btn px-3 py-2 text-xs font-semibold rounded-t-lg border-b-2 border-transparent text-gray-400 hover:text-white">
+          6 Milestones
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-5 flex-1">
+
+        <!-- TAB 1: GOAL & DEADLINE -->
+        <div id="tab-goal" class="tab-panel space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Climber Name</label>
+              <input id="inputName" type="text" maxlength="18" class="w-full px-3 py-2 rounded-lg bg-[#0D0F12] border border-white/15 text-sm text-white focus:outline-none focus:border-[#DB4A2B]" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Side Title</label>
+              <input id="inputSideTitle" type="text" maxlength="16" class="w-full px-3 py-2 rounded-lg bg-[#0D0F12] border border-white/15 text-sm text-white focus:outline-none focus:border-[#DB4A2B]" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Current Grade</label>
+              <input id="inputFromGrade" type="text" maxlength="8" class="w-full px-3 py-2 rounded-lg bg-[#0D0F12] border border-white/15 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Target Grade</label>
+              <input id="inputToGrade" type="text" maxlength="8" class="w-full px-3 py-2 rounded-lg bg-[#0D0F12] border border-white/15 text-sm text-white" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Target Deadline</label>
+              <input id="inputDeadline" type="date" class="w-full px-3 py-2 rounded-lg bg-[#0D0F12] border border-white/15 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Deadline Subtitle</label>
+              <input id="inputDeadlineLabel" type="text" maxlength="20" class="w-full px-3 py-2 rounded-lg bg-[#0D0F12] border border-white/15 text-sm text-white" />
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: 6 MILESTONES -->
+        <div id="tab-holds" class="tab-panel hidden space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Select Milestone Tape (Top → Bottom)</label>
+            <div id="holdList" class="space-y-1.5"></div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-3">
+            <div class="flex items-center justify-between">
+              <span id="editingHoldHeading" class="text-xs font-bold text-white">Editing T-28</span>
+              <span id="editingHoldDate" class="text-[11px] text-gray-400">NOV 19</span>
+            </div>
+
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">Milestone Text</label>
+              <input id="holdLabel" type="text" maxlength="48" class="w-full px-2.5 py-1.5 rounded bg-[#0D0F12] border border-white/15 text-xs text-white" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+  </main>
+
+  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white text-black text-xs font-semibold shadow-xl opacity-0 pointer-events-none transition-opacity duration-200 z-50">
+    Exported!
+  </div>
+
+  <script>
+    const HOLD_SHAPES = {
+      pocket: {
+        outline: 'M5 20 C5 10 12 5 20 5 C29 5 35 11 35 20 C35 29 28 35 20 35 C11 35 5 29 5 20 Z',
+        cavity: 'M13 16 C13 12 27 12 27 16 C27 20.5 13 20.5 13 16 Z',
+        bolt: [20, 27]
+      },
+      crimp: {
+        outline: 'M2 21 C3 16 12 14 22 14 C31 14 38 16 38 21 C38 26 33 28 20 28 C8 28 2 26 2 21 Z',
+        cavity: 'M4 20 C12 17.5 28 17.5 36 20 C28 19 12 19 4 20 Z',
+        bolt: [20, 23]
+      },
+      pinch: {
+        outline: 'M15 2 C23 1 28 7 28 18 C28 29 25 38 18 38 C11 38 10 29 11 19 C11 10 9 3 15 2 Z',
+        cavity: null,
+        bolt: [19, 21]
+      },
+      sloper: {
+        outline: 'M3 30 C3 16 11 6 21 6 C31 6 38 15 37 30 C30 34 10 34 3 30 Z',
+        cavity: null,
+        bolt: [21, 22]
+      },
+      rail: {
+        outline: 'M3 24 L10 12 L32 10 L38 20 L30 30 L8 31 Z',
+        cavity: 'M10 12 L32 10 L33.5 13.5 L11.5 15.5 Z',
+        bolt: [21, 23]
+      },
+      jug: {
+        outline: 'M4 16 C4 7 12 3 20 3 C29 3 36 8 36 17 C36 26 30 34 20 34 C10 34 4 27 4 16 Z',
+        cavity: 'M7 19 C9 31 31 31 33 19 C29 24 11 24 7 19 Z',
+        bolt: [20, 12]
+      }
+    };
+
+    function createDefaultState() {
+      return {
+        reserveWidgets: true,
+        iphoneModel: '1179x2556',
+        name: 'Victoria',
+        sideTitle: 'PROJECT V7',
+        fromGrade: 'V6',
+        toGrade: 'V7',
+        deadline: '2026-12-17',
+        deadlineLabel: 'FINAL GYM DAY',
+        accent: '#E84A27',
+        glowBase: '#EAE6DF',
+        glowLeft: '#F4A9BA',
+        glowRight: '#F6BA84',
+        selectedIndex: 0,
+        holds: [
+          { id: 0, tag: 'T-28', offsetDays: 28, date: 'NOV 19', label: 'Beta & Route Pick', shape: 'pocket', color: '#3F82F0', size: 40, rot: -6, tilt: -1.5, x: 46, y: 652, tapeX: 82, tapeY: 635 },
+          { id: 1, tag: 'T-21', offsetDays: 21, date: 'NOV 26', label: 'Build strength with hangboard & Kilter', shape: 'crimp', color: '#4FCC5B', size: 40, rot: -10, tilt: 1.5, x: 248, y: 596, tapeX: 48, tapeY: 574 },
+          { id: 2, tag: 'T-14', offsetDays: 14, date: 'DEC 3', label: 'Isolate crux, 3–5 move sections', shape: 'pinch', color: '#FDCE3E', size: 40, rot: 14, tilt: -1.5, x: 52, y: 540, tapeX: 88, tapeY: 518 },
+          { id: 3, tag: 'T-7', offsetDays: 7, date: 'DEC 10', label: 'Hard repeats under fatigue, save skin', shape: 'sloper', color: '#FB5A46', size: 40, rot: 4, tilt: 1.5, x: 246, y: 484, tapeX: 46, tapeY: 462 },
+          { id: 4, tag: 'T-3', offsetDays: 3, date: 'DEC 14', label: 'Rest fingers, visualize beta & skin', shape: 'rail', color: '#E867C3', size: 38, rot: -7, tilt: -1.5, x: 54, y: 428, tapeX: 90, tapeY: 406 },
+          { id: 5, tag: 'TOP', offsetDays: 0, date: 'DEC 17', label: 'Grip warm-up, 3–5 full sends, get V7', shape: 'jug', color: '#FF992B', size: 48, rot: 0, tilt: 1.5, x: 240, y: 372, tapeX: 36, tapeY: 350 }
+        ]
+      };
+    }
+
+    let state = createDefaultState();
+    let activeTab = 'goal';
+    let cachedEmbeddedFontCss = null;
+    const svgEl = document.getElementById('lockScreenSvg');
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('opacity-0');
+      t.classList.add('opacity-100');
+      setTimeout(() => {
+        t.classList.remove('opacity-100');
+        t.classList.add('opacity-0');
+      }, 2200);
+    }
+
+    function escapeXml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function wrapTwoLines(text, maxChars = 24) {
+      const words = String(text).trim().split(/\s+/);
+      if (words.length === 0) return [''];
+      let line1 = '';
+      let line2 = '';
+      for (const w of words) {
+        if ((line1 + ' ' + w).trim().length <= maxChars && line2 === '') {
+          line1 = (line1 + ' ' + w).trim();
+        } else {
+          line2 = (line2 + ' ' + w).trim();
+        }
+      }
+      return line2 ? [line1, line2] : [line1];
+    }
+
+    function raggedTapePath(x, y, w, h) {
+      const steps = 6;
+      const stepH = h / steps;
+      let d = `M ${x} ${y} L ${x + w} ${y}`;
+      for (let i = 1; i <= steps; i++) {
+        const jag = (i % 2 === 1) ? -3.5 : 1.5;
+        d += ` L ${x + w + jag} ${(y + i * stepH).toFixed(1)}`;
+      }
+      d += ` L ${x} ${y + h} Z`;
+      return d;
+    }
+
+    function recomputeDatesFromDeadline() {
+      if (!state.deadline) return;
+      const base = new Date(state.deadline + 'T12:00:00');
+      if (isNaN(base.getTime())) return;
+      const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+      state.holds.forEach(h => {
+        const d = new Date(base);
+        d.setDate(d.getDate() - h.offsetDays);
+        h.date = `${months[d.getMonth()]} ${d.getDate()}`;
+      });
+    }
+
+    async function getEmbeddedFontCss() {
+      if (cachedEmbeddedFontCss !== null) return cachedEmbeddedFontCss;
+      try {
+        const cssUrl = 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Kalam:wght@700&family=Space+Grotesk:wght@500;700&display=swap';
+        const res = await fetch(cssUrl);
+        let cssText = await res.text();
+        const urlMatches = [...cssText.matchAll(/url\((https:\/\/[^)]+)\)/g)];
+        const uniqueUrls = [...new Set(urlMatches.map(m => m[1]))];
+        const dataMap = {};
+        await Promise.all(uniqueUrls.map(async fontUrl => {
+          const fontRes = await fetch(fontUrl);
+          const buf = await fontRes.arrayBuffer();
+          const bytes = new Uint8Array(buf);
+          let binary = '';
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          dataMap[fontUrl] = `data:font/woff2;base64,${btoa(binary)}`;
+        }));
+        for (const [u, dataUri] of Object.entries(dataMap)) {
+          cssText = cssText.split(u).join(dataUri);
+        }
+        cachedEmbeddedFontCss = cssText;
+        return cssText;
+      } catch {
+        return '';
+      }
+    }
+
+    function renderLockScreen(includeOverlay = true, embeddedCss = '') {
+      const ink = '#1A1A1A';
+      const topRuleY = state.reserveWidgets ? 338 : 258;
+      const metaY = topRuleY - 12;
+      const bottomRuleY = 688;
+      const gridH = bottomRuleY - topRuleY;
+      const midY = (topRuleY + bottomRuleY) / 2;
+      const yShift = state.reserveWidgets ? 0 : -40;
+
+      const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+      let footerDate = 'DEC 17';
+      let footerYear = '2026';
+      if (state.deadline) {
+        const dt = new Date(state.deadline + 'T12:00:00');
+        if (!isNaN(dt.getTime())) {
+          footerDate = `${months[dt.getMonth()]} ${dt.getDate()}`;
+          footerYear = String(dt.getFullYear());
+        }
+      }
+
+      const defs = `
+        <defs>
+          ${embeddedCss ? `<style type="text/css"><![CDATA[${embeddedCss}]]></style>` : ''}
+          <radialGradient id="glowL" cx="18%" cy="62%" r="60%">
+            <stop offset="0%" stop-color="${state.glowLeft}" stop-opacity="0.72" />
+            <stop offset="100%" stop-color="${state.glowLeft}" stop-opacity="0" />
+          </radialGradient>
+          <radialGradient id="glowR" cx="85%" cy="52%" r="62%">
+            <stop offset="0%" stop-color="${state.glowRight}" stop-opacity="0.72" />
+            <stop offset="100%" stop-color="${state.glowRight}" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient id="topFade" x1="0%" y1="0%" x2="0%" y2="36%">
+            <stop offset="0%" stop-color="${state.glowBase}" stop-opacity="1" />
+            <stop offset="100%" stop-color="${state.glowBase}" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="botFade" x1="0%" y1="78%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${state.glowBase}" stop-opacity="0" />
+            <stop offset="100%" stop-color="${state.glowBase}" stop-opacity="0.85" />
+          </linearGradient>
+          <filter id="grainFilter" x="0%" y="0%" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+        </defs>
+      `;
+
+      const layers = [];
+
+      layers.push(`<rect width="393" height="852" fill="${state.glowBase}" />`);
+      layers.push(`<rect width="393" height="852" fill="url(#glowL)" />`);
+      layers.push(`<rect width="393" height="852" fill="url(#glowR)" />`);
+      layers.push(`<rect width="393" height="852" fill="url(#topFade)" />`);
+      layers.push(`<rect width="393" height="852" fill="url(#botFade)" />`);
+
+      layers.push(`
+        <text x="20" y="${metaY}" font-family="Inter, sans-serif" font-weight="500" font-size="11.5" fill="${ink}">You got this, ${escapeXml(state.name)}</text>
+        <text x="373" y="${metaY}" text-anchor="end" font-family="Inter, sans-serif" font-weight="600" font-size="11.5" fill="${ink}">${escapeXml(state.fromGrade)} → ${escapeXml(state.toGrade)}</text>
+        <line x1="0" y1="${topRuleY}" x2="393" y2="${topRuleY}" stroke="${ink}" stroke-width="2.5" />
+        <line x1="293" y1="${topRuleY}" x2="293" y2="${bottomRuleY}" stroke="${ink}" stroke-width="2.5" />
+        <clipPath id="sideColClip"><rect x="295" y="${topRuleY + 2}" width="98" height="${gridH - 4}" /></clipPath>
+        <g clip-path="url(#sideColClip)">
+          <text transform="translate(343, ${bottomRuleY - 12}) rotate(-90)" text-anchor="start" dominant-baseline="central" font-family="Space Grotesk, sans-serif" font-weight="700" font-size="52" letter-spacing="-1.5" fill="${ink}">${escapeXml(state.sideTitle.toUpperCase())}</text>
+        </g>
+        <line x1="0" y1="${bottomRuleY}" x2="393" y2="${bottomRuleY}" stroke="${ink}" stroke-width="2.5" />
+      `);
+
+      state.holds.forEach(h => {
+        const hy = h.y + yShift;
+        layers.push(`<line x1="0" y1="${hy}" x2="293" y2="${hy}" stroke="${ink}" stroke-opacity="0.22" stroke-width="1" />`);
+      });
+
+      state.holds.forEach(h => {
+        const def = HOLD_SHAPES[h.shape] || HOLD_SHAPES.pocket;
+        const scale = h.size / 40;
+        const hy = h.y + yShift;
+        const holdTransform = `translate(${h.x}, ${hy}) rotate(${h.rot}) scale(${scale}) translate(-20, -20)`;
+
+        const tickSide = h.x <= 146 ? -1 : 1;
+        const tix = h.x + tickSide * (h.size * 0.56);
+        const tiy = hy - h.size * 0.44;
+        layers.push(`
+          <g stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-opacity="0.85">
+            <line x1="${tix}" y1="${tiy}" x2="${tix + tickSide * 6}" y2="${tiy - 5}" />
+            <line x1="${tix + tickSide * 4}" y1="${tiy + 5}" x2="${tix + tickSide * 10}" y2="${tiy + 2}" />
+          </g>
+        `);
+
+        layers.push(`
+          <g>
+            <g transform="translate(1.5, 2.5) ${holdTransform}">
+              <path d="${def.outline}" fill="${ink}" fill-opacity="0.25" />
+            </g>
+            <g transform="${holdTransform}">
+              <path d="${def.outline}" fill="${h.color}" stroke="${ink}" stroke-width="${(1.8 / scale).toFixed(2)}" stroke-linejoin="round" />
+              <ellipse cx="16" cy="14" rx="7" ry="4" fill="#FFFFFF" fill-opacity="0.28" transform="rotate(-18 16 14)" />
+              ${def.cavity ? `<path d="${def.cavity}" fill="${ink}" fill-opacity="0.32" />` : ''}
+              <circle cx="${def.bolt[0]}" cy="${def.bolt[1]}" r="${(2.6 / scale).toFixed(2)}" fill="${ink}" />
+            </g>
+          </g>
+        `);
+
+        const lines = wrapTwoLines(h.label, 24);
+        const tapeW = 164;
+        const tapeH = lines.length > 1 ? 42 : 33;
+        const tx = h.tapeX;
+        const ty = h.tapeY + yShift;
+        const cx = tx + tapeW / 2;
+        const cy = ty + tapeH / 2;
+        const pathD = raggedTapePath(tx, ty, tapeW, tapeH);
+
+        layers.push(`
+          <g transform="rotate(${h.tilt} ${cx} ${cy})">
+            <path d="${pathD}" fill="${ink}" fill-opacity="0.18" transform="translate(1, 2)" />
+            <path d="${pathD}" fill="#F6F2E8" stroke="${ink}" stroke-width="1.15" stroke-linejoin="round" />
+            <rect x="${tx}" y="${ty}" width="8.5" height="${tapeH}" fill="${h.color}" stroke="${ink}" stroke-width="1.15" />
+            <text x="${tx + 14}" y="${ty + 12}" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="10.5" letter-spacing="0.5" fill="${ink}">${escapeXml(h.tag)} · ${escapeXml(h.date)}</text>
+            <text x="${tx + 14}" y="${ty + 25}" font-family="Kalam, cursive" font-weight="700" font-size="11.5" fill="${ink}">${escapeXml(lines[0])}</text>
+            ${lines[1] ? `<text x="${tx + 14}" y="${ty + 36.5}" font-family="Kalam, cursive" font-weight="700" font-size="11.5" fill="${ink}">${escapeXml(lines[1])}</text>` : ''}
+          </g>
+        `);
+      });
+
+      layers.push(`
+        <text x="20" y="726" font-family="Inter, sans-serif" font-weight="600" font-size="11" letter-spacing="0.3" fill="${ink}">${escapeXml(state.deadlineLabel.toUpperCase())} / ${escapeXml(footerYear)}</text>
+        <text x="373" y="736" text-anchor="end" font-family="Space Grotesk, sans-serif" font-weight="700" font-size="34" letter-spacing="-1" fill="${state.accent}">${escapeXml(footerDate)}</text>
+      `);
+
+      layers.push(`<rect width="393" height="852" filter="url(#grainFilter)" opacity="0.06" />`);
+
+      if (includeOverlay) {
+        layers.push(`
+          <g>
+            <text x="196.5" y="96" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-weight="600" font-size="16" fill="${ink}" fill-opacity="0.88">Sun Nov 22</text>
+            <text x="196.5" y="182" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="86" letter-spacing="-3" fill="${ink}" fill-opacity="0.92">9:41</text>
+            ${state.reserveWidgets ? `
+              <rect x="20" y="228" width="166" height="76" rx="16" fill="${ink}" fill-opacity="0.04" stroke="${ink}" stroke-opacity="0.35" stroke-width="1.3" stroke-dasharray="3 2" />
+              <circle cx="242" cy="266" r="30" fill="${ink}" fill-opacity="0.04" stroke="${ink}" stroke-opacity="0.35" stroke-width="1.3" stroke-dasharray="3 2" />
+              <circle cx="332" cy="266" r="30" fill="${ink}" fill-opacity="0.04" stroke="${ink}" stroke-opacity="0.35" stroke-width="1.3" stroke-dasharray="3 2" />
+            ` : ''}
+            <circle cx="72" cy="788" r="22" fill="${ink}" fill-opacity="0.26" />
+            <rect x="68" y="779" width="8" height="16" rx="2" fill="#FFFFFF" fill-opacity="0.9" />
+            <circle cx="321" cy="788" r="22" fill="${ink}" fill-opacity="0.26" />
+            <rect x="312" y="782" width="18" height="12" rx="2.5" fill="#FFFFFF" fill-opacity="0.9" />
+            <rect x="132" y="838" width="129" height="4.5" rx="2.25" fill="${ink}" fill-opacity="0.7" />
+          </g>
+        `);
+      }
+
+      svgEl.innerHTML = defs + layers.join('\n');
+    }
+
+    function syncInspectorUI() {
+      const [ew, eh] = state.iphoneModel.split('x');
+      document.getElementById('exportDimBadge').innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> ${ew} × ${eh} px Export`;
+      document.getElementById('iphoneModelSelect').value = state.iphoneModel;
+      document.getElementById('toggleWidgets').checked = state.reserveWidgets;
+
+      document.getElementById('inputName').value = state.name;
+      document.getElementById('inputSideTitle').value = state.sideTitle;
+      document.getElementById('inputFromGrade').value = state.fromGrade;
+      document.getElementById('inputToGrade').value = state.toGrade;
+      document.getElementById('inputDeadline').value = state.deadline;
+      document.getElementById('inputDeadlineLabel').value = state.deadlineLabel;
+
+      const holdList = document.getElementById('holdList');
+      holdList.innerHTML = [...state.holds].reverse().map(h => {
+        const sel = h.id === state.selectedIndex;
+        return `
+          <button type="button" data-select-hold="${h.id}" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs border transition ${
+            sel ? 'bg-[#DB4A2B]/15 border-[#DB4A2B] text-white' : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+          }">
+            <span class="flex items-center gap-2 truncate">
+              <span class="w-3 h-3 rounded-full shrink-0" style="background:${h.color}"></span>
+              <span class="font-bold">${escapeXml(h.tag)}</span>
+              <span class="truncate">${escapeXml(h.label)}</span>
+            </span>
+          </button>
+        `;
+      }).join('');
+
+      holdList.querySelectorAll('[data-select-hold]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.selectedIndex = Number(btn.dataset.selectHold);
+          updateAll();
+        });
+      });
+
+      const h = state.holds[state.selectedIndex];
+      document.getElementById('editingHoldHeading').textContent = `Editing ${h.tag}`;
+      document.getElementById('editingHoldDate').textContent = h.date;
+      document.getElementById('holdLabel').value = h.label;
+    }
+
+    function updateAll() {
+      renderLockScreen(true);
+      syncInspectorUI();
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeTab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          const on = b.dataset.tab === activeTab;
+          b.classList.toggle('border-[#DB4A2B]', on);
+          b.classList.toggle('text-white', on);
+          b.classList.toggle('border-transparent', !on);
+          b.classList.toggle('text-gray-400', !on);
+        });
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== `tab-${activeTab}`));
+      });
+    });
+
+    document.getElementById('iphoneModelSelect').addEventListener('change', e => {
+      state.iphoneModel = e.target.value;
+      document.getElementById('dynamicIsland').classList.toggle('hidden', state.iphoneModel === '750x1334');
+      updateAll();
+    });
+    document.getElementById('toggleWidgets').addEventListener('change', e => { state.reserveWidgets = e.target.checked; updateAll(); });
+    document.getElementById('resetBtn').addEventListener('click', () => { state = createDefaultState(); updateAll(); showToast('Reset to default'); });
+
+    document.getElementById('inputName').addEventListener('input', e => { state.name = e.target.value; updateAll(); });
+    document.getElementById('inputSideTitle').addEventListener('input', e => { state.sideTitle = e.target.value; updateAll(); });
+    document.getElementById('inputFromGrade').addEventListener('input', e => { state.fromGrade = e.target.value; updateAll(); });
+    document.getElementById('inputToGrade').addEventListener('input', e => { state.toGrade = e.target.value; updateAll(); });
+    document.getElementById('inputDeadline').addEventListener('change', e => { state.deadline = e.target.value; recomputeDatesFromDeadline(); updateAll(); });
+    document.getElementById('inputDeadlineLabel').addEventListener('input', e => { state.deadlineLabel = e.target.value; updateAll(); });
+
+    document.getElementById('holdLabel').addEventListener('input', e => { state.holds[state.selectedIndex].label = e.target.value; updateAll(); });
+
+    document.getElementById('exportPngBtn').addEventListener('click', async () => {
+      const [expW, expH] = state.iphoneModel.split('x').map(Number);
+      const embeddedCss = await getEmbeddedFontCss();
+      renderLockScreen(false, embeddedCss);
+      const svgMarkup = new XMLSerializer().serializeToString(svgEl);
+      renderLockScreen(true);
+
+      const blob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = expW;
+        canvas.height = expH;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, expW, expH);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(pngBlob => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(pngBlob);
+          a.download = `${state.sideTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${expW}x${expH}.png`;
+          a.click();
+          showToast(`Exported ${expW}×${expH} PNG!`);
+        }, 'image/png');
+      };
+      img.src = url;
+    });
+
+    updateAll();
+  </script>
+</body>
+</html>
